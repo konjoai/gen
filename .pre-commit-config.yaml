@@ -1,0 +1,17 @@
+# Hooks block on failure (charter §7). Run `pre-commit install` once locally.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: verify-deps
+        name: verify dependency provenance (pinned + installed + importable)
+        entry: python scripts/verify_deps.py
+        language: system
+        pass_filenames: false
+        always_run: true

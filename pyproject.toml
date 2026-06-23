@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# PyPI distribution name is namespaced because `gen` is taken on PyPI.
+# The import/package name stays `gen` (源 — source / origin). See README.
+name = "konjo-gen"
+version = "0.1.0"
+description = "Konjo architecture-research scaffold: synthetic gauntlet, SequenceMixer plug, reference baselines, four-gate decision ledger."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [{ name = "Konjo AI" }]
+
+# Pinned, no inferred names. Every entry is verified by scripts/verify_deps.py.
+dependencies = [
+    "torch==2.5.1",
+    "numpy==2.1.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.3.4",
+    "ruff==0.8.4",
+    "mypy==1.13.0",
+    "pre-commit==4.0.1",
+]
+
+[project.scripts]
+gen-gauntlet = "gen.gauntlet.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+gen = ["py.typed"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+# E/F pyflakes+pycodestyle, I import sort, B bugbear, UP pyupgrade.
+# BLE001 forbids blind `except Exception` — the charter's "fail loud" rule.
+select = ["E", "F", "I", "B", "UP", "BLE"]
+ignore = ["E501"]  # line length handled by formatter
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["gen"]
+mypy_path = "src"
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+disallow_untyped_defs = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
