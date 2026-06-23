@@ -12,6 +12,7 @@ from gen.primitives.base import (
     SequenceMixer,
 )
 from gen.primitives.ssm_ref import SSMRef
+from gen.primitives.tropical import TropicalMaxPlus
 
 # A mixer factory takes d_model and returns a SequenceMixer. The harness and
 # scripts look candidates up by name here; future candidates register the same way.
@@ -20,6 +21,7 @@ MixerFactory = Callable[[int], SequenceMixer]
 REGISTRY: dict[str, MixerFactory] = {
     "attention": lambda d_model: AttentionRef(d_model),
     "ssm": lambda d_model: SSMRef(d_model),
+    "tropical": lambda d_model: TropicalMaxPlus(d_model),
 }
 
 
@@ -38,5 +40,6 @@ __all__ = [
     "MixerFactory",
     "SSMRef",
     "SequenceMixer",
+    "TropicalMaxPlus",
     "get_mixer",
 ]
