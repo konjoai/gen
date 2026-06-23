@@ -1,60 +1,71 @@
-# Next Session — First Candidate Screen: the lead under-served constraint
+# Next Session — Second Candidate Screen: crack the both-axes corner
 
-**Type:** Candidate-screen sprint (the first real one; the scaffold is done).
-**Depends on:** this repo's V1 baselines (`docs/gauntlet_baselines.md`) — the
-reference rows your candidate is read against.
+**Type:** Candidate-screen sprint (the second; scaffold v0.1.0 + the tropical screen are done).
+**Depends on:** `docs/gauntlet_baselines.md` (the two reference baselines) and
+`docs/screens/tropical_max_plus.md` (the first screen, `killed-empirically`).
+
+## Where we are (read first)
+
+Three points now sit on the two-axis map (recall = MQAR-vs-K; state-tracking = parity / Dyck):
+
+| mixer | recall (MQAR) | state-tracking (parity/Dyck) |
+| --- | --- | --- |
+| `attention` | aces to K=32 | ~chance |
+| `ssm` (gated linear attn) | collapses by K=8 | aces |
+| `tropical` (max,+) | aces to K=16, **collapses at K=32** | ~chance (like attention) |
+
+**The corner is still empty.** Tropical was the recall-axis warm-up: it confirmed
+hard (max,+) selection matches soft attention on recall up to moderate K (so the
+softmax average is not load-bearing there), but its per-channel argmax loses
+channel-consistency as keys compete, and the sharpness needed to fix that collides
+with its Gate-2/Gate-3 numerical fragility. It bought no efficiency, so it was
+`killed-empirically`. Nobody yet holds recall AND state-tracking together.
 
 ## The one-line kickoff
 
-> Read `docs/CHARTER.md` (§3.2 negative space, §4 method) and
-> `docs/gauntlet_baselines.md`. Paper-screen the lead candidate — **the tropical
-> max-plus mixer** (or whichever under-served constraint I choose at kickoff) —
-> against the four gates. If it earns a kill test, implement it in slow-but-correct
-> form and run it on MQAR against the `attention` and `ssm` baselines.
+> Read `docs/CHARTER.md` (§3.1, §4), `docs/gauntlet_baselines.md`, and
+> `docs/DECISION_LOG.md`. Paper-screen a **state-expansion recurrence**
+> (delta-rule / fast-weight / test-time-regression flavored, charter §3.1) against
+> the four gates. If it earns a kill test, implement it slow-but-correct and judge
+> it on **both axes** against all three existing rows.
 
-## Why tropical first (charter §3.2)
+## Why state-expansion now (charter §3.1)
 
-Sparse selection is the dominant theme of the whole sub-quadratic field, and
-max-plus algebra makes selection the *primitive* operation rather than a bolt-on.
-The honest kill-gates are **Gate 2** (max is subgradient-only) and **Gate 3**
-(max-reductions are bandwidth-bound but matmul-adjacent — feasible). OT-as-core
-and NCA-as-causal-mixer are the next two in the queue.
+It attacks the corner directly: give the recurrence a larger, content-addressable,
+**online-updated** state (a delta rule / fast-weight outer-product memory that
+*writes corrections*, not just sums), so it can both (a) hold more associations
+than the fixed-state `ssm` (move recall up at K>=8) and (b) keep the sequential
+state-tracking the recurrence already has (parity / Dyck). The honest kill-gates
+are **Gate 2** (does the online update train stably at depth) and **Gate 4** (does
+the larger state actually lift the recall ceiling, or just shift it).
 
-## Procedure (do these in order)
+## Pre-registered falsification bar (write before running)
 
-1. **Graveyard pass.** Write the prior art for max-plus / tropical sequence
-   mixing. Has the exact formulation been tried? If it lost, to what and why?
-2. **Scaffold the screen:**
-   ```bash
-   python scripts/paper_screen.py tropical_max_plus
-   ```
-   Fill in `docs/screens/tropical_max_plus.md` — the analytic argument for each
-   of the four gates. **Kill on paper if Gate 1 or Gate 3 fails.**
-3. **Record the paper verdict** in the ledger:
-   - `paper-dead` → append the entry with the reason; stop. (A clean negative is
-     a deliverable — charter §4 step 8.)
-   - `earned-kill-test` → continue.
-4. **Implement the kill test.** Add `src/gen/primitives/tropical.py` implementing
-   `SequenceMixer` (slow, correct, no kernel), fill its `gate_card`, register it
-   in `REGISTRY`, then:
-   ```bash
-   python scripts/run_gauntlet.py tropical
-   ```
-5. **Decide against the baselines.** Compare the MQAR accuracy-vs-K curve to the
-   baselines. Use the 30-run paired Wilcoxon gate (`gen.stats.wilcoxon`) for any
-   "matches/beats attention" claim before it merges. Append the empirical verdict
-   (`killed-empirically` or `promoted`) to the ledger.
+> Hold MQAR **materially above `ssm`** at K>=8 (e.g. >=0.6 where `ssm` is ~0.27)
+> **while** keeping parity/Dyck **above the `attention` baseline** (>0.9, where
+> attention is ~0.55). Clearing **both** is the corner and a publishable result.
+> Clearing neither, or only one, is a clean negative — name which axis moved.
 
-## Falsification criterion to set up front
+## Procedure (unchanged ritual)
 
-Before running: state the bar tropical must clear, e.g. *"match attention to
-within 5% MQAR accuracy through K=32, while keeping a Gate-3-plausible reduction
-to a parallel scan; otherwise it cannot be the sole mixer."* If it cannot, that
-is the result — write the note and move to the next candidate.
+1. Branch `claude/gen-screen-state-expansion` from `main`.
+2. **Graveyard pass** (DeltaNet, Gated DeltaNet, TTT, Titans, fast-weight
+   programmers — what did they hold/lose, and why) at the top of the screen.
+3. `python scripts/paper_screen.py state_expansion`, fill the four gates, apply the
+   kill-on-paper rule (Gate 1 or Gate 3 `fail` -> `paper-dead`, ledger + stop).
+4. Only `earned-kill-test` proceeds: `src/gen/primitives/state_expansion.py`
+   (`SequenceMixer`, slow/correct, real `step` recurrence this time, filled
+   `gate_card`), register `"state_expansion"`, mirror `tests/test_interface.py`.
+5. `python scripts/run_gauntlet.py state_expansion`; read **both axes**.
+6. 30-run paired Wilcoxon (`gen.stats.wilcoxon`, p<0.05) for any "beats `ssm` on
+   recall" or "matches `attention` on state-tracking" claim. Ledger
+   (`killed-empirically` / `promoted`) honest against the pre-registered bar;
+   update `CHANGELOG.md` and this file (to OT-as-core if the corner is still open).
 
 ## Guardrails carried over
 
-- No language data, no kernels, no training framework. Slow-but-correct only.
-- Determinism + version header in every report.
-- Fail loud; shape assertions at the mixer boundary.
-- Blocking CI stays blocking.
+- Slow-but-correct only; no fused kernel. Determinism + version header in every report.
+- Fail loud; shape assertions at the mixer boundary. Watch for NaNs from the
+  online update (the tropical sprint learned this the hard way: bound the state /
+  normalize, do not let winner-take-all dynamics blow up the scores).
+- Blocking CI stays blocking. One candidate only; do not start OT-as-core.

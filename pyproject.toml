@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # PyPI distribution name is namespaced because `gen` is taken on PyPI.
 # The import/package name stays `gen` (源 — source / origin). See README.
 name = "konjo-gen"
-version = "0.1.0"
+version = "0.2.0"
 description = "Konjo architecture-research scaffold: synthetic gauntlet, SequenceMixer plug, reference baselines, four-gate decision ledger."
 readme = "README.md"
 requires-python = ">=3.11"
