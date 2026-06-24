@@ -12,6 +12,7 @@ from gen.primitives.base import (
     SequenceMixer,
 )
 from gen.primitives.ssm_ref import SSMRef
+from gen.primitives.state_expansion import DeltaNetMixer
 from gen.primitives.tropical import TropicalMaxPlus
 
 # A mixer factory takes d_model and returns a SequenceMixer. The harness and
@@ -22,6 +23,7 @@ REGISTRY: dict[str, MixerFactory] = {
     "attention": lambda d_model: AttentionRef(d_model),
     "ssm": lambda d_model: SSMRef(d_model),
     "tropical": lambda d_model: TropicalMaxPlus(d_model),
+    "state_expansion": lambda d_model: DeltaNetMixer(d_model),
 }
 
 
@@ -35,6 +37,7 @@ __all__ = [
     "NO_RECURRENT_FORM",
     "REGISTRY",
     "AttentionRef",
+    "DeltaNetMixer",
     "GateCard",
     "GateVerdict",
     "MixerFactory",
